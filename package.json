@@ -1,0 +1,5 @@
+{
+  "name": "trainer-app",
+  "private": true,
+  "type": "module"
+}
