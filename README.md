@@ -24,6 +24,15 @@ python3 -m http.server 8080
 
 then open http://localhost:8080 in Chrome.
 
+## Releasing an update
+
+```
+./release.sh "What changed"
+```
+
+This bumps the version (shown next to the page title), commits and pushes.
+GitHub Pages updates within a minute or two.
+
 ## Tuning
 
 In `gears.js`:

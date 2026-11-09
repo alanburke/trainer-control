@@ -1,10 +1,10 @@
-import { parseIndoorBikeData, parseCyclingPower, cadenceFromCrank, parseFeatures } from './ftms.js';
+import { parseIndoorBikeData, parseCyclingPower, cadenceFromCrank, parseFeatures } from './ftms.js?v=3';
 import {
   GEAR_RATIOS, START_GEAR, gradeForGear, virtualSpeedKmh,
   speedFromCadence, speedFromPower, simulationCommand, cadenceFromSpeed,
-} from './gears.js';
-import { connectClick } from './click.js';
-import { BT } from './uuids.js';
+} from './gears.js?v=3';
+import { connectClick } from './click.js?v=3';
+import { BT } from './uuids.js?v=3';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -382,3 +382,9 @@ if (!navigator.bluetooth) {
   $('no-bluetooth').hidden = false;
   ui.connect.disabled = true;
 }
+
+// Show which version loaded, to spot an old cached copy on the phone.
+// To release an update, bump ?v= in index.html, app.js and click.js together.
+const version = new URL(import.meta.url).searchParams.get('v') ?? 'dev';
+$('version').textContent = `v${version}`;
+log(`App version ${version}`);
