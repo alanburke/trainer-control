@@ -1,10 +1,10 @@
-import { parseIndoorBikeData, parseCyclingPower, cadenceFromCrank, parseFeatures } from './ftms.js?v=3';
+import { parseIndoorBikeData, parseCyclingPower, cadenceFromCrank, parseFeatures } from './ftms.js?v=4';
 import {
   GEAR_RATIOS, START_GEAR, gradeForGear, virtualSpeedKmh,
   speedFromCadence, speedFromPower, simulationCommand, cadenceFromSpeed,
-} from './gears.js?v=3';
-import { connectClick } from './click.js?v=3';
-import { BT } from './uuids.js?v=3';
+} from './gears.js?v=4';
+import { connectClick } from './click.js?v=4';
+import { BT, sameUuid } from './uuids.js?v=4';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -37,6 +37,14 @@ let lastSentGrade = null;
 let lastSentAt = 0;
 
 // ---- Helpers ----
+// Bluefy's errors don't always have a .message, so fall back to whatever it gave us.
+function errText(err) {
+  if (!err) return 'unknown error';
+  if (err.message) return err.message;
+  if (typeof err === 'string') return err;
+  try { return `${err.name ?? 'Error'} ${JSON.stringify(err)}`; } catch { return String(err); }
+}
+
 function log(msg) {
   const t = new Date().toLocaleTimeString();
   ui.log.textContent = `${t}  ${msg}\n` + ui.log.textContent.slice(0, 8000);
@@ -115,7 +123,7 @@ function cpWrite(bytes) {
       done: (ok) => { clearTimeout(timer); pendingResponse = null; resolve(ok); },
     };
     controlPoint.writeValueWithResponse(bytes).catch((err) => {
-      log(`Write failed: ${err.message}`);
+      log(`Write failed: ${errText(err)}`);
       pendingResponse?.done(false);
     });
   });
@@ -142,7 +150,7 @@ async function takeControl(service) {
     status.addEventListener('characteristicvaluechanged', (e) => log(`Trainer status: ${hex(e.target.value)}`));
     await status.startNotifications();
   } catch (err) {
-    log(`No trainer status feed: ${err.message}`);
+    log(`No trainer status feed: ${errText(err)}`);
   }
 
   if (!await cpWrite(new Uint8Array([0x00]))) {
@@ -211,7 +219,7 @@ async function keepScreenOn() {
     wakeLock.addEventListener('release', () => { wakeLock = null; });
     log('Screen will stay on');
   } catch (err) {
-    log(`Could not keep screen on: ${err.message}`);
+    log(`Could not keep screen on: ${errText(err)}`);
   }
 }
 // The lock is dropped when the page is hidden; take it again on return.
@@ -234,16 +242,16 @@ async function connect() {
     log(`Connected to "${device.name}"`);
 
     const services = await server.getPrimaryServices();
-    log('Services: ' + services.map((s) => s.uuid.slice(4, 8)).join(', '));
+    log('Services: ' + services.map((s) => s.uuid).join(', '));
 
-    const ftms = services.find((s) => s.uuid.startsWith('00001826'));
-    const cps = services.find((s) => s.uuid.startsWith('00001818'));
+    const ftms = services.find((s) => sameUuid(s.uuid, BT.FITNESS_MACHINE));
+    const cps = services.find((s) => sameUuid(s.uuid, BT.CYCLING_POWER));
 
     if (ftms) {
       await startFtms(ftms);
       // Some trainers only send power/cadence on the Cycling Power service, so listen there too.
       if (cps) {
-        try { await startCps(cps); } catch (err) { log(`Cycling Power not readable: ${err.message}`); }
+        try { await startCps(cps); } catch (err) { log(`Cycling Power not readable: ${errText(err)}`); }
       }
       await takeControl(ftms);
     } else if (cps) {
@@ -258,8 +266,9 @@ async function connect() {
     ui.connect.disabled = true;
     ui.disconnect.disabled = false;
   } catch (err) {
-    log(`Error: ${err.message}`);
-    setStatus(err.name === 'NotFoundError' ? 'No device chosen' : `Error: ${err.message}`, 'err');
+    log(`Error: ${errText(err)}`);
+    if (device?.gatt?.connected) device.gatt.disconnect(); // start clean on the next try
+    setStatus(err.name === 'NotFoundError' ? 'No device chosen' : `Error: ${errText(err)}`, 'err');
   }
 }
 
@@ -274,7 +283,7 @@ async function startFtms(service) {
       `Measures:\n  ${f.measures.join('\n  ') || '(none listed)'}\n\n` +
       `Can be controlled by:\n  ${f.controls.join('\n  ') || '(none listed)'}`;
   } catch (err) {
-    log(`Could not read features: ${err.message}`);
+    log(`Could not read features: ${errText(err)}`);
   }
 
   const bikeData = await service.getCharacteristic(BT.INDOOR_BIKE_DATA);
@@ -359,7 +368,7 @@ clickUi.button.addEventListener('click', async () => {
     setClickStatus(`Click: connected (${clickDevice.name})`, 'ok');
     clickUi.button.disabled = true;
   } catch (err) {
-    log(`Click error: ${err.message}`);
+    log(`Click error: ${errText(err)}`);
     setClickStatus(err.name === 'NotFoundError' ? 'Click: none chosen' : 'Click: error (see log)', 'err');
   }
 });

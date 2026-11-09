@@ -7,7 +7,7 @@
 // Note: a Click v2 only exposes its controller service if it was connected to
 // the Zwift app in the last 24 hours. Otherwise the service is hidden.
 
-import { BT } from './uuids.js?v=3';
+import { BT, sameUuid, normalizeUuid } from './uuids.js?v=4';
 
 export const ZWIFT_COMPANY_ID = 0x094a;
 export const SERVICE_V1 = '00000001-19ca-4651-86e5-fa29dcdd09d1'; // Click v1, Play
@@ -116,11 +116,11 @@ export async function connectClick({ onShift, onBattery, onDisconnect, log }) {
   const services = await server.getPrimaryServices();
   log('Click services: ' + services.map((s) => s.uuid).join(', '));
 
-  const service = services.find((s) => s.uuid === SERVICE_V2) || services.find((s) => s.uuid === SERVICE_V1);
+  const service = services.find((s) => sameUuid(s.uuid, SERVICE_V2)) || services.find((s) => sameUuid(s.uuid, SERVICE_V1));
   if (!service) {
     throw new Error('Click is locked. Connect it in the Zwift app once (it stays unlocked for 24 hours), close Zwift, then try again.');
   }
-  const isV2 = service.uuid === SERVICE_V2;
+  const isV2 = sameUuid(service.uuid, SERVICE_V2);
   log(`Click: using ${isV2 ? 'v2' : 'v1'} service`);
 
   const asyncChar = await service.getCharacteristic(ASYNC);
@@ -134,7 +134,7 @@ export async function connectClick({ onShift, onBattery, onDisconnect, log }) {
     const type = bytes[0];
     // Log new messages (not repeats, not the idle heartbeat) so unknown formats still show up.
     const raw = hex(bytes);
-    if (type !== MSG.IDLE && raw !== lastRaw) log(`Click raw [${e.target.uuid.slice(4, 8)}]: ${raw}`);
+    if (type !== MSG.IDLE && raw !== lastRaw) log(`Click raw [${normalizeUuid(e.target.uuid).slice(4, 8)}]: ${raw}`);
     lastRaw = raw;
 
     const msg = parseClickMessage(bytes);
