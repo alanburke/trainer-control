@@ -7,7 +7,7 @@
 // Note: a Click v2 only exposes its controller service if it was connected to
 // the Zwift app in the last 24 hours. Otherwise the service is hidden.
 
-import { BT, sameUuid, normalizeUuid } from './uuids.js?v=4';
+import { BT, sameUuid, normalizeUuid } from './uuids.js?v=5';
 
 export const ZWIFT_COMPANY_ID = 0x094a;
 export const SERVICE_V1 = '00000001-19ca-4651-86e5-fa29dcdd09d1'; // Click v1, Play

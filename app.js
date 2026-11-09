@@ -1,10 +1,10 @@
-import { parseIndoorBikeData, parseCyclingPower, cadenceFromCrank, parseFeatures } from './ftms.js?v=4';
+import { parseIndoorBikeData, parseCyclingPower, cadenceFromCrank, parseFeatures } from './ftms.js?v=5';
 import {
   GEAR_RATIOS, START_GEAR, gradeForGear, virtualSpeedKmh,
   speedFromCadence, speedFromPower, simulationCommand, cadenceFromSpeed,
-} from './gears.js?v=4';
-import { connectClick } from './click.js?v=4';
-import { BT, sameUuid } from './uuids.js?v=4';
+} from './gears.js?v=5';
+import { connectClick } from './click.js?v=5';
+import { BT, sameUuid } from './uuids.js?v=5';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -80,6 +80,8 @@ function trainerSpeedMs() {
 function show({ powerW, cadenceRpm, speedKmh }) {
   if (powerW !== undefined) { rider.powerW = powerW; ui.power.textContent = Math.max(0, powerW); }
   if (cadenceRpm !== undefined) {
+    // A real cadence reading arrived (e.g. from crank data): drop the "estimated" tag.
+    if (rider.cadenceRpm === undefined) $('cadence-label').textContent = 'Cadence (rpm)';
     rider.cadenceRpm = cadenceRpm;
     ui.cadence.textContent = Math.round(cadenceRpm);
     lastCadenceAt = Date.now();
