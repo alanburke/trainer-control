@@ -4,6 +4,7 @@ import {
   speedFromCadence, speedFromPower, simulationCommand, cadenceFromSpeed,
 } from './gears.js';
 import { connectClick } from './click.js';
+import { BT } from './uuids.js';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -131,13 +132,13 @@ function onControlPointReply(e) {
 }
 
 async function takeControl(service) {
-  controlPoint = await service.getCharacteristic('fitness_machine_control_point');
+  controlPoint = await service.getCharacteristic(BT.CONTROL_POINT);
   controlPoint.addEventListener('characteristicvaluechanged', onControlPointReply);
   await controlPoint.startNotifications();
 
   // The trainer reports its own state changes here (e.g. "control lost", "new gradient").
   try {
-    const status = await service.getCharacteristic('fitness_machine_status');
+    const status = await service.getCharacteristic(BT.MACHINE_STATUS);
     status.addEventListener('characteristicvaluechanged', (e) => log(`Trainer status: ${hex(e.target.value)}`));
     await status.startNotifications();
   } catch (err) {
@@ -223,8 +224,8 @@ async function connect() {
   try {
     setStatus('Choose your trainer in the Bluetooth popup…');
     device = await navigator.bluetooth.requestDevice({
-      filters: [{ services: ['fitness_machine'] }, { services: ['cycling_power'] }],
-      optionalServices: ['fitness_machine', 'cycling_power', 'device_information'],
+      filters: [{ services: [BT.FITNESS_MACHINE] }, { services: [BT.CYCLING_POWER] }],
+      optionalServices: [BT.FITNESS_MACHINE, BT.CYCLING_POWER, BT.DEVICE_INFO],
     });
     device.addEventListener('gattserverdisconnected', onDisconnected);
 
@@ -265,7 +266,7 @@ async function connect() {
 async function startFtms(service) {
   source = 'FTMS';
   try {
-    const raw = await (await service.getCharacteristic('fitness_machine_feature')).readValue();
+    const raw = await (await service.getCharacteristic(BT.MACHINE_FEATURE)).readValue();
     log(`FTMS features raw: ${hex(raw)}`);
     const f = parseFeatures(raw);
     ui.features.textContent =
@@ -276,7 +277,7 @@ async function startFtms(service) {
     log(`Could not read features: ${err.message}`);
   }
 
-  const bikeData = await service.getCharacteristic('indoor_bike_data');
+  const bikeData = await service.getCharacteristic(BT.INDOOR_BIKE_DATA);
   let logged = 0;
   bikeData.addEventListener('characteristicvaluechanged', (e) => {
     const v = e.target.value;
@@ -292,7 +293,7 @@ async function startFtms(service) {
 async function startCps(service) {
   source ??= 'CPS';
   cpsActive = true;
-  const measurement = await service.getCharacteristic('cycling_power_measurement');
+  const measurement = await service.getCharacteristic(BT.POWER_MEASUREMENT);
   let logged = 0;
   measurement.addEventListener('characteristicvaluechanged', (e) => {
     const v = e.target.value;

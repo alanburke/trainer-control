@@ -7,6 +7,8 @@
 // Note: a Click v2 only exposes its controller service if it was connected to
 // the Zwift app in the last 24 hours. Otherwise the service is hidden.
 
+import { BT } from './uuids.js';
+
 export const ZWIFT_COMPANY_ID = 0x094a;
 export const SERVICE_V1 = '00000001-19ca-4651-86e5-fa29dcdd09d1'; // Click v1, Play
 export const SERVICE_V2 = '0000fc82-0000-1000-8000-00805f9b34fb'; // Click v2, Ride
@@ -94,7 +96,7 @@ const hex = (bytes) => [...bytes].map((b) => b.toString(16).padStart(2, '0')).jo
 // Returns the BluetoothDevice.
 export async function connectClick({ onShift, onBattery, onDisconnect, log }) {
   const basicFilters = [{ services: [SERVICE_V1] }, { services: [SERVICE_V2] }, { namePrefix: 'Zwift' }];
-  const optionalServices = [SERVICE_V1, SERVICE_V2, 'battery_service'];
+  const optionalServices = [SERVICE_V1, SERVICE_V2, BT.BATTERY];
   let device;
   try {
     device = await navigator.bluetooth.requestDevice({
